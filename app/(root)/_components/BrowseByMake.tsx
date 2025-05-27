@@ -28,6 +28,7 @@ const BrowseByMake = () => {
                                     className="object-contain size-full" 
                                 />
                             </div>
+                            <h3 className='p-medium-20'>{make.name}</h3>
                         </Link>
                     ))}
                 </div>
