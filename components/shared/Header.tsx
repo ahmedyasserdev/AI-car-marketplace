@@ -3,6 +3,8 @@ import Link from "./Link";
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 import { Button } from "../ui/button";
 import { Heart, CarFront, Layout, ArrowLeft } from "lucide-react";
+import { checkUser } from "@/lib/checkUser";
+import { UserRole } from "@prisma/client";
 
 type HeaderProps = {
   isAdminPage?: boolean;
@@ -26,7 +28,8 @@ const navigationLinks = [
 ];
 
 const Header = async ({ isAdminPage = false }: HeaderProps) => {
-  const isAdmin = false; 
+  const user = await checkUser()
+  const isAdmin = user?.role === UserRole.ADMIN; 
 
   return (
     <header className="bg-white/80 backdrop-blur-md fixed w-full top-0 z-50 border-b">
