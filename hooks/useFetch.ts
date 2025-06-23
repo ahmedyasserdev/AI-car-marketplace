@@ -17,7 +17,7 @@ export function useFetch<T, Args extends any[]>(
   cb: FetchCallback<T, Args>
 ): UseFetchResult<T, Args> {
   const [data, setData] = useState<T | undefined>(undefined);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean | null>(false);
   const [error, setError] = useState<Error | null>(null);
 
   const fn = async (...args: Args) => {

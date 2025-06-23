@@ -10,24 +10,42 @@ import { db } from '../db'
 import { revalidatePath } from 'next/cache'
 import { Car } from '@prisma/client'
 
+type CarAIResult = {
+  make: string;
+  model: string;
+  year: number;
+  color: string;
+  price: string;
+  mileage: string;
+  bodyType: string;
+  fuelType: string;
+  transmission: string;
+  description: string;
+  confidence: number;
+};
 
-export const processCarImageAI = async (file: File) => {
-    try {
-        if (!process.env.CAR_IMAGE_UPLOAD_URL) {
-            throw new Error('No CAR_IMAGE_UPLOAD_URL provided!')
-        }
+type ProcessCarImageResult = {
+  success: true;
+  data: CarAIResult;
+} | undefined;
 
-        const genAI = new GoogleGenerativeAI(process.env.CAR_IMAGE_UPLOAD_URL)
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
-        const base64Image = await fileToBase64(file);
-        const imagePart = {
-            inlineData: {
-                data: base64Image,
-                mimeType: file.type
-            }
-        }
+export const processCarImageAI = async (file: File): Promise<ProcessCarImageResult> => {
+  try {
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error('No CAR_IMAGE_UPLOAD_URL provided!')
+    }
 
-        const prompt = `
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+    const base64Image = await fileToBase64(file);
+    const imagePart = {
+      inlineData: {
+        data: base64Image,
+        mimeType: file.type
+      }
+    }
+
+    const prompt = `
         Analyze this car image and extract the following information:
         1. Make (manufacturer)
         2. Model
@@ -59,46 +77,46 @@ export const processCarImageAI = async (file: File) => {
         Only respond with the JSON object, nothing else.
       `;
 
-        const result = await model.generateContent([prompt, imagePart])
-        const response = await result.response
-        const text = response.text()        
-        const cleanedText = text.replace(/```(?:json)?\n?/g, "").trim();
-        const carDetails = JSON.parse(cleanedText);
+    const result = await model.generateContent([prompt, imagePart])
+    const response = await result.response
+    const text = response.text()
+    const cleanedText = text.replace(/```(?:json)?\n?/g, "").trim();
+    const carDetails = JSON.parse(cleanedText);
 
-        const requiredFields = [
-            "make",
-            "model",
-            "year",
-            "color",
-            "bodyType",
-            "price",
-            "mileage",
-            "fuelType",
-            "transmission",
-            "description",
-            "confidence",
-          ];
+    const requiredFields = [
+      "make",
+      "model",
+      "year",
+      "color",
+      "bodyType",
+      "price",
+      "mileage",
+      "fuelType",
+      "transmission",
+      "description",
+      "confidence",
+    ];
 
-          const missingFields = requiredFields.filter(
-            (field) => !(field in carDetails)
-          );
-    
-          if (missingFields.length > 0) {
-            throw new Error(
-              `AI response missing required fields: ${missingFields.join(", ")}`
-            );
-          }
-    
-          return {
-            success: true,
-            data: carDetails,
-          };
-    
-    
+    const missingFields = requiredFields.filter(
+      (field) => !(field in carDetails)
+    );
 
-    } catch (error) {
-        console.log('Error processing car image', error)
+    if (missingFields.length > 0) {
+      throw new Error(
+        `AI response missing required fields: ${missingFields.join(", ")}`
+      );
     }
+
+    return {
+      success: true,
+      data: carDetails,
+    };
+
+
+
+  } catch (error) {
+    console.log('Error processing car image', error)
+  }
 }
 
 type CarData = {
@@ -117,89 +135,89 @@ type CarData = {
   featured?: boolean
 }
 
-export const createNewCar = async ({carData, images}: {carData: CarData, images: string[]}) : Promise<{success : boolean , message : string , data : Car} | undefined> => {
+export const createNewCar = async ({ carData, images }: { carData: CarData, images: string[] }): Promise<{ success: boolean, message: string, data: Car } | undefined> => {
   try {
-      const {userId } = await auth();
-  
-      if (!userId) throw new Error("Unauthorized")
-  
-      const user  = await  getUserByClerkId(userId);
-  
-      if (!user )  throw new Error("Unauthorized")  
-  
-          const carId = uuidv4();
-          const folderPath = `cars/${carId}`
-  
-          const cookieStore = await cookies();
-          //@ts-expect-error
-          const supabase = createClient(cookieStore);
-          const imageUrls = []
-  
-          for (let i = 0; i < images.length; i++) {
-              const base64Data : string = images[i];
-        
-              // Skip if image data is not valid
-              if (!base64Data || !base64Data.startsWith("data:image/")) {
-                console.warn("Skipping invalid image data");
-                continue;
-              }
-  
-              const base64 = base64Data.split(",")[1];
-              const imageBuffer = Buffer.from(base64 , 'base64')
-              const mimeMatch = base64Data.match(/data:image\/([a-zA-Z0-9]+);/);
-              const fileExtension = mimeMatch ? mimeMatch[1] : "jpeg";
-              const fileName = `image-${Date.now()}-${i}.${fileExtension}`;
-              const filePath = `${folderPath}/${fileName}`;
-  
-              const { data, error } = await supabase.storage
-              .from("car-images")
-              .upload(filePath, imageBuffer, {
-                contentType: `image/${fileExtension}`,
-              });
-  
-              if (error) {
-                  console.error("Error uploading image:", error);
-                  throw new Error(`Failed to upload image: ${error.message}`);
-                }
-  
-                const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/car-images/${filePath}`; // disable cache in config
-  
-                imageUrls.push(publicUrl);
-        
-          }
-          if (imageUrls.length === 0) {
-              throw new Error("No valid images were uploaded");
-            }
-  
-         const newCar =    await db.car.create({
-              data: {
-                id: carId, // Use the same ID we used for the folder
-                make: carData.make,
-                model: carData.model,
-                year: carData.year,
-                price: carData.price,
-                mileage: carData.mileage,
-                color: carData.color,
-                fuelType: carData.fuelType,
-                transmission: carData.transmission,
-                bodyType: carData.bodyType,
-                seats: carData.seats,
-                description: carData.description,
-                status: carData.status,
-                featured: carData.featured,
-                images: imageUrls, // Store the array of image URLs
-              },
-            });
-            revalidatePath("/admin/cars");
+    const { userId } = await auth();
 
-            return {
-              success: true,
-              message : "Car created successfully",
-              data : newCar
-            };
-  
-  
-    } catch (error : any) {
-        throw new Error("Error adding car:" + error.message);
+    if (!userId) throw new Error("Unauthorized")
+
+    const user = await getUserByClerkId(userId);
+
+    if (!user) throw new Error("Unauthorized")
+
+    const carId = uuidv4();
+    const folderPath = `cars/${carId}`
+
+    const cookieStore = await cookies();
+    //@ts-expect-error
+    const supabase = createClient(cookieStore);
+    const imageUrls = []
+
+    for (let i = 0; i < images.length; i++) {
+      const base64Data: string = images[i];
+
+      // Skip if image data is not valid
+      if (!base64Data || !base64Data.startsWith("data:image/")) {
+        console.warn("Skipping invalid image data");
+        continue;
+      }
+
+      const base64 = base64Data.split(",")[1];
+      const imageBuffer = Buffer.from(base64, 'base64')
+      const mimeMatch = base64Data.match(/data:image\/([a-zA-Z0-9]+);/);
+      const fileExtension = mimeMatch ? mimeMatch[1] : "jpeg";
+      const fileName = `image-${Date.now()}-${i}.${fileExtension}`;
+      const filePath = `${folderPath}/${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from("car-images")
+        .upload(filePath, imageBuffer, {
+          contentType: `image/${fileExtension}`,
+        });
+
+      if (error) {
+        console.error("Error uploading image:", error);
+        throw new Error(`Failed to upload image: ${error.message}`);
+      }
+
+      const publicUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/car-images/${filePath}`; // disable cache in config
+
+      imageUrls.push(publicUrl);
+
     }
+    if (imageUrls.length === 0) {
+      throw new Error("No valid images were uploaded");
+    }
+
+    const newCar = await db.car.create({
+      data: {
+        id: carId, // Use the same ID we used for the folder
+        make: carData.make,
+        model: carData.model,
+        year: carData.year,
+        price: carData.price,
+        mileage: carData.mileage,
+        color: carData.color,
+        fuelType: carData.fuelType,
+        transmission: carData.transmission,
+        bodyType: carData.bodyType,
+        seats: carData.seats,
+        description: carData.description,
+        status: carData.status,
+        featured: carData.featured,
+        images: imageUrls, // Store the array of image URLs
+      },
+    });
+    revalidatePath("/admin/cars");
+
+    return {
+      success: true,
+      message: "Car created successfully",
+      data: newCar
+    };
+
+
+  } catch (error: any) {
+    throw new Error("Error adding car:" + error.message);
+  }
 }
