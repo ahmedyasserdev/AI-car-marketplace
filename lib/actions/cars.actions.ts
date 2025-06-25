@@ -1,6 +1,6 @@
 'use server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { fileToBase64 } from '../utils'
+import { fileToBase64, serializedCarData } from '../utils'
 import { getUserByClerkId } from './user'
 import { auth } from '@clerk/nextjs/server'
 import { v4 as uuidv4 } from "uuid";
@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase'
 import { cookies } from 'next/headers'
 import { db } from '../db'
 import { revalidatePath } from 'next/cache'
-import { Car } from '@prisma/client'
+import { Car, CarStatus } from '@prisma/client'
 
 type CarAIResult = {
   make: string;
@@ -220,4 +220,151 @@ export const createNewCar = async ({ carData, images }: { carData: CarData, imag
   } catch (error: any) {
     throw new Error("Error adding car:" + error.message);
   }
+}
+
+type FnReturnResult = FnReturnResult
+
+export const getCars = async (search: string = '') : FnReturnResult => {
+  try {
+    const { userId } = await auth();
+
+    if (!userId) throw new Error("Unauthorized")
+
+    const user = await getUserByClerkId(userId);
+
+    if (!user) throw new Error("Unauthorized")
+
+    let where: any = {};
+
+    if (search) {
+      where.OR = [
+        { make: { contains: search, mode: "insensitive" } },
+        { model: { contains: search, mode: "insensitive" } },
+        { color: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+
+    const cars = await db.car.findMany({
+      where,
+      orderBy: {
+        createdAt: "desc"
+      }
+    })
+
+    const serializedCars = cars.map((car) => serializedCarData(car));
+
+    return {
+      success: true,
+      cars: serializedCars
+    }
+  } catch (error: any) {
+    console.error("Error fetching cars:", error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+}
+
+
+
+export const deleteCar = async (carId: string) : FnReturnResult => {
+  try {
+    const { userId } = await auth();
+
+    if (!userId) throw new Error("Unauthorized")
+
+    const user = await getUserByClerkId(userId);
+
+    if (!user) throw new Error("Unauthorized");
+
+    const car = await db.car.findUnique({
+      where: {
+        id: carId
+      },
+      select: {
+        images: true
+      }
+    })
+
+    if (!car) return { success: false, error: "Car not found" }
+
+    await db.car.delete({
+      where: {
+        id: carId
+      }
+    })
+
+    const cookieStore = await cookies();
+    //@ts-expect-error
+    const supabase = createClient(cookieStore);
+
+    const filePaths = car.images.map((imageUrl) => {
+      const url = new URL(imageUrl);
+      const pathMatch = url.pathname.match(/\/car-images\/(.*)/);
+      return pathMatch ? pathMatch[1] : null;
+    }).filter(Boolean);
+
+    if (filePaths.length > 0) {
+      const { error } = await supabase.storage.from("car-images").remove(filePaths as string[]);
+
+      if (error) {
+        console.error("Error deleting images:", error);
+        throw new Error(`Failed to delete images: ${error.message}`);
+      }
+
+    }
+
+
+    revalidatePath("/admin/cars");
+
+    return { success: true, message: "Car deleted successfully" }
+
+  } catch (error  : any) {
+    console.error("Error deleting cars:", error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+}
+
+export const updateCar = 
+async ({ id, status, featured }: { id: string, status?: CarStatus, featured?: boolean })  : FnReturnResult=> {
+  try {
+    const { userId } = await auth();
+
+    if (!userId) throw new Error("Unauthorized")
+
+    const user = await getUserByClerkId(userId);
+
+    if (!user) throw new Error("Unauthorized");
+
+    const updateData: { status?: CarStatus, featured?: boolean } = {}
+
+    if (status !== undefined) updateData.status = status;
+    if (featured !== undefined) updateData.featured = featured;
+
+    await db.car.update({
+      where  : {id },
+      data : updateData
+    })
+
+    revalidatePath("/admin/cars");
+
+
+      return {
+        success : true , 
+        message: "updates car successfully"
+      }
+
+  } catch (error :any) {
+    console.error("Error Updating cars:", error);
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+
 }
