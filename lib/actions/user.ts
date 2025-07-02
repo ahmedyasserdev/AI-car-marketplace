@@ -1,5 +1,6 @@
 
 import { db } from "../db";
+import { auth } from "@clerk/nextjs/server";
 
 
 export const getUserByClerkId = async(clerkId :string) => {
@@ -9,3 +10,15 @@ export const getUserByClerkId = async(clerkId :string) => {
         },
       });
 }
+
+
+export const authenticateUser = async () => {
+    const { userId } = await auth();
+    if (!userId) throw new Error("Unauthorized");
+  
+    const user = await getUserByClerkId(userId);
+    if (!user) throw new Error("Unauthorized");
+  
+    return user;
+  }
+  

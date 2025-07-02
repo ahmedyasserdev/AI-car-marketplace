@@ -1,7 +1,7 @@
 'use server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { fileToBase64, serializedCarData } from '../utils'
-import { getUserByClerkId } from './user'
+import { authenticateUser, getUserByClerkId } from './user'
 import { auth } from '@clerk/nextjs/server'
 import { v4 as uuidv4 } from "uuid";
 import { createClient } from '@/lib/supabase'
@@ -9,6 +9,7 @@ import { cookies } from 'next/headers'
 import { db } from '../db'
 import { revalidatePath } from 'next/cache'
 import { Car, CarStatus } from '@prisma/client'
+import { SerializedCarType } from '@/types'
 
 type CarAIResult = {
   make: string;
@@ -28,6 +29,9 @@ type ProcessCarImageResult = {
   success: true;
   data: CarAIResult;
 } | undefined;
+
+
+
 
 export const processCarImageAI = async (file: File): Promise<ProcessCarImageResult> => {
   try {
@@ -137,13 +141,8 @@ type CarData = {
 
 export const createNewCar = async ({ carData, images }: { carData: CarData, images: string[] }): Promise<{ success: boolean, message: string, data: Car } | undefined> => {
   try {
-    const { userId } = await auth();
-
-    if (!userId) throw new Error("Unauthorized")
-
-    const user = await getUserByClerkId(userId);
-
-    if (!user) throw new Error("Unauthorized")
+     await authenticateUser();
+    
 
     const carId = uuidv4();
     const folderPath = `cars/${carId}`
@@ -222,18 +221,10 @@ export const createNewCar = async ({ carData, images }: { carData: CarData, imag
   }
 }
 
-type FnReturnResult = FnReturnResult
 
-export const getCars = async (search: string = '') : FnReturnResult => {
+export const getCars = async (search: string = '') : Promise<{cars : SerializedCarType[] , error?: string , success:boolean}>  => {
   try {
-    const { userId } = await auth();
-
-    if (!userId) throw new Error("Unauthorized")
-
-    const user = await getUserByClerkId(userId);
-
-    if (!user) throw new Error("Unauthorized")
-
+    await authenticateUser();
     let where: any = {};
 
     if (search) {
@@ -263,22 +254,17 @@ export const getCars = async (search: string = '') : FnReturnResult => {
     return {
       success: false,
       error: error.message,
+      cars : []
     };
   }
 }
 
+type FnReturnResult = Promise<{message?: string , error?:string , success?:boolean}>
 
 
 export const deleteCar = async (carId: string) : FnReturnResult => {
   try {
-    const { userId } = await auth();
-
-    if (!userId) throw new Error("Unauthorized")
-
-    const user = await getUserByClerkId(userId);
-
-    if (!user) throw new Error("Unauthorized");
-
+     await authenticateUser()
     const car = await db.car.findUnique({
       where: {
         id: carId
@@ -333,13 +319,7 @@ export const deleteCar = async (carId: string) : FnReturnResult => {
 export const updateCar = 
 async ({ id, status, featured }: { id: string, status?: CarStatus, featured?: boolean })  : FnReturnResult=> {
   try {
-    const { userId } = await auth();
-
-    if (!userId) throw new Error("Unauthorized")
-
-    const user = await getUserByClerkId(userId);
-
-    if (!user) throw new Error("Unauthorized");
+   await authenticateUser()
 
     const updateData: { status?: CarStatus, featured?: boolean } = {}
 

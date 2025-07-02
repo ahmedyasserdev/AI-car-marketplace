@@ -1,16 +1,32 @@
 'use client'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { useFetch } from "@/hooks/useFetch"
+import { getCars } from "@/lib/actions/cars.actions"
 import { PlusIcon, Search } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import CarsTable from "./CarsTable"
+import { SerializedCarType } from "@/types"
 
 const CarsList = () => {
     const [search , setSearch] = useState("");
     const router = useRouter();
+    const {
+        loading ,
+        data : getCarsData ,
+        error ,
+        fn : getCarsFn,
+        setData  : setCars
+    } = useFetch(getCars)
     const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
     }
+
+    useEffect(() => {
+            getCarsFn(search)
+    }, [search])
+    
     return (
         <div className = "space-y-6">
             <div className = "flex flex-col sm:flex-row  gap-4 items-start sm:items-center justify-between" >
@@ -34,7 +50,14 @@ const CarsList = () => {
               
 
 
-                {/* CARS TABLE */}
+              <CarsTable 
+                search={search} 
+                //@ts-ignore
+                getCarsFn={getCarsFn} 
+                success={getCarsData?.success} 
+                cars={getCarsData?.cars} 
+                loading={loading}
+              />
         </div>
     )
 }

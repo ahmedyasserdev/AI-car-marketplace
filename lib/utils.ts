@@ -1,3 +1,4 @@
+import { SerializedCarType } from "@/types";
 import { Car } from "@prisma/client";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -14,7 +15,7 @@ export async function fileToBase64(file : File) {
 }
 
 
-export const serializedCarData = (car : Car, wishlisted : boolean = false) => {
+export const serializedCarData = (car : Car, wishlisted : boolean = false)  => {
   return {
     ...car,
     price: car.price ? parseFloat(car.price.toString()) : 0,
@@ -22,4 +23,13 @@ export const serializedCarData = (car : Car, wishlisted : boolean = false) => {
     updatedAt: car.updatedAt?.toISOString(),
     wishlisted: wishlisted,
   };
+};
+
+
+export const formatCurrency = (amount : number | undefined) => {
+  if (!amount) return;
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(amount);
 };
