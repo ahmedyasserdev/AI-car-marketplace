@@ -30,6 +30,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import DeleteCarDialog from './DeleteCarDialog'
+import NoCarsFound from './NoCarsFound'
 
 type CarsTableProps = {
     cars: SerializedCarType[] | undefined
@@ -207,6 +208,7 @@ const CarsTable = ({ search, getCarsFn, cars, loading, success }: CarsTableProps
                                                         <DropdownMenuSeparator />
                                                         {carStatusOption.map((status) => (
                                                             <DropdownMenuItem
+                                                            disabled={car.status === status.value}
                                                                 key={status.value}
                                                                 onClick={() => handleStatusUpdate({ ...car, status: status.value })}
                                                             >
@@ -233,7 +235,7 @@ const CarsTable = ({ search, getCarsFn, cars, loading, success }: CarsTableProps
                             </Table>
                         </div>
                     ) : (
-                        <div>No Cars</div>
+                    <NoCarsFound search = {search} />
                     )}
                 </CardContent>
             </Card>

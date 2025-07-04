@@ -1,4 +1,5 @@
 
+import { User } from "@prisma/client";
 import { db } from "../db";
 import { auth } from "@clerk/nextjs/server";
 
@@ -12,7 +13,7 @@ export const getUserByClerkId = async(clerkId :string) => {
 }
 
 
-export const authenticateUser = async () => {
+export const authenticateUser = async () : Promise<User> => {
     const { userId } = await auth();
     if (!userId) throw new Error("Unauthorized");
   

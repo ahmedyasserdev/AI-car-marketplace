@@ -42,8 +42,9 @@ const DeleteCarDialog = ({deleteCarActionLoading,carToDelete ,handleDeleteCar , 
         </Button>
         <Button
           variant="destructive"
+          className="!text-white"
           onClick={handleDeleteCar}
-          disabled={deleteCarActionLoading}
+          disabled={deleteCarActionLoading as boolean}
         >
           {deleteCarActionLoading ? (
             <>

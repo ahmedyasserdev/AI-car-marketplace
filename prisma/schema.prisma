@@ -115,16 +115,16 @@ model WorkingHour {
   id             String       @id @default(uuid())
   dealershipId   String
   dealership     DealershipInfo   @relation(fields: [dealershipId], references: [id], onDelete: Cascade)
-  dayOfWeek      DayOfWeek
+  daysOfWeek      DayOfWeek
   openTime       String       // Format: "HH:MM" (24-hour)
   closeTime      String       // Format: "HH:MM" (24-hour)
   isOpen         Boolean      @default(true)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 
-  @@unique([dealershipId, dayOfWeek])
+  @@unique([dealershipId, daysOfWeek])
   @@index([dealershipId])
-  @@index([dayOfWeek])
+  @@index([daysOfWeek])
   @@index([isOpen])
 }
 
