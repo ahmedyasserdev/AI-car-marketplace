@@ -1,6 +1,7 @@
 'use client'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Clock, Shield } from "lucide-react"
+import WorkingHoursForm from "./WorkingHoursForm"
 
 const SettingsForm = () => {
   return (
@@ -17,7 +18,7 @@ const SettingsForm = () => {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="hours" className="space-y-6 mt-6">
-          {/* <WorkingHoursForm/> */}
+          <WorkingHoursForm/>
 
         </TabsContent>
    
