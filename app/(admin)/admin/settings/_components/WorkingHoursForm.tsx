@@ -4,10 +4,8 @@ import { getDealerShipInfo, saveWorkingHours } from '@/lib/actions/settings.acti
 import { useEffect, useState } from 'react';
 import {
     Card,
-    CardAction,
     CardContent,
     CardDescription,
-    CardFooter,
     CardHeader,
     CardTitle,
 } from "@/components/ui/card"
@@ -58,36 +56,36 @@ const WorkingHoursForm = (props: WorkingHoursFormProps) => {
 
     useEffect(() => {
         if (settingsData?.success && settingsData.data) {
-          const dealership = settingsData.data;
-    
-          if (dealership.workingHours) {
-            const mappedHours = DAYS.map((day) => {
-              // Find matching working hour
-              const hourData = dealership.workingHours.find(
-                (h : WorkingHour) => h.dayOfWeek === day.value
-              );
-    
-              if (hourData) {
-                return {
-                  dayOfWeek: hourData.dayOfWeek,
-                  openTime: hourData.openTime,
-                  closeTime: hourData.closeTime,
-                  isOpen: hourData.isOpen,
-                };
-              }
-    
-              return {
-                dayOfWeek: day.value,
-                openTime: "09:00",
-                closeTime: "18:00",
-                isOpen: day.value !== "SUNDAY",
-              };
-            });
-    
-            setWorkingHours(mappedHours);
-          }
+            const dealership = settingsData.data;
+
+            if (dealership.workingHours) {
+                const mappedHours = DAYS.map((day) => {
+                    // Find matching working hour
+                    const hourData = dealership.workingHours.find(
+                        (h: WorkingHour) => h.dayOfWeek === day.value
+                    );
+
+                    if (hourData) {
+                        return {
+                            dayOfWeek: hourData.dayOfWeek,
+                            openTime: hourData.openTime,
+                            closeTime: hourData.closeTime,
+                            isOpen: hourData.isOpen,
+                        };
+                    }
+
+                    return {
+                        dayOfWeek: day.value,
+                        openTime: "09:00",
+                        closeTime: "18:00",
+                        isOpen: day.value !== "SUNDAY",
+                    };
+                });
+
+                setWorkingHours(mappedHours);
+            }
         }
-      }, [settingsData]);
+    }, [settingsData]);
 
     useEffect(() => {
         fetchDealershipInfo();
@@ -102,7 +100,7 @@ const WorkingHoursForm = (props: WorkingHoursFormProps) => {
         setWorkingHours(updatedHours);
     };
 
-    const handleSavingWorkingHours = async() => await saveWorkingHoursAction(workingHours)
+    const handleSavingWorkingHours = async () => await saveWorkingHoursAction(workingHours)
 
 
     useEffect(() => {
@@ -203,23 +201,24 @@ const WorkingHoursForm = (props: WorkingHoursFormProps) => {
 
                 </div>
 
-                <div className= "flex justify-end">
-                <Button 
-                    onClick = {handleSavingWorkingHours}
-                    disabled={savingWorkingHours as boolean}
-                >
-                       {savingHours ? (
-                    <>
-                      <Loader2 className="mr-2 size-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="mr-2 size-4" />
-                      Save Working Hours
-                    </>
-                  )}
-                </Button>
+                <div className="flex justify-end">
+                    <Button
+                        onClick={handleSavingWorkingHours}
+                        disabled={savingWorkingHours as boolean}
+                            effect={'shineHover'}
+                    >
+                        {savingHours ? (
+                            <>
+                                <Loader2 className="mr-2 size-4 animate-spin" />
+                                Saving...
+                            </>
+                        ) : (
+                            <>
+                                <Save className="mr-2 size-4" />
+                                Save Working Hours
+                            </>
+                        )}
+                    </Button>
 
                 </div>
             </CardContent>

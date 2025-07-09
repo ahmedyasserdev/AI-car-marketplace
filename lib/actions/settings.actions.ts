@@ -134,7 +134,7 @@ export const saveWorkingHours = async (workingHours: {
 }
 
 
-export const getUser = async () => {
+export const getUsers = async () => {
     try {
 
         const user = await authenticateUser();
@@ -166,7 +166,7 @@ export const updateUserRole = async ({ userId, role }: { userId: string, role: U
         const user = await authenticateUser();
         if (user.role !== UserRole.ADMIN) throw new Error("Unauthorized Admin access is required");
 
-        const updatedUser = await db.user.update({
+         await db.user.update({
             where: { id: userId },
             data: { role },
         })

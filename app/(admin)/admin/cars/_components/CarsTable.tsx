@@ -29,8 +29,8 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import DeleteCarDialog from './DeleteCarDialog'
 import NoCarsFound from './NoCarsFound'
+import ConfirmationDialog from '@/components/shared/ConfirmationDialog'
 
 type CarsTableProps = {
     cars: SerializedCarType[] | undefined
@@ -239,12 +239,16 @@ const CarsTable = ({ search, getCarsFn, cars, loading, success }: CarsTableProps
                     )}
                 </CardContent>
             </Card>
-            <DeleteCarDialog 
-                deleteDialogOpen ={deleteDialogOpen}
-                setDeleteDialogOpen ={setDeleteDialogOpen}
-                handleDeleteCar={handleDeleteCar}
-                carToDelete={carToDelete}
-                deleteCarActionLoading={deleteCarActionLoading}
+            <ConfirmationDialog 
+                isOpen={deleteDialogOpen}
+                onOpenChange={setDeleteDialogOpen}
+                onConfirm={handleDeleteCar}
+                title="Delete Car"
+                description="Are you sure you want to delete this car?"
+                isLoading={deleteCarActionLoading as boolean}
+                confirmButtonText="Delete Car"
+                confirmButtonVariant="destructive"
+                loadingText="Deleting..."
             />
         </div>
     )

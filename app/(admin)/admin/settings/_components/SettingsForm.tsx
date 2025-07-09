@@ -2,6 +2,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Clock, Shield } from "lucide-react"
 import WorkingHoursForm from "./WorkingHoursForm"
+import UserRoleManagement from "./UserRoleManagement"
 
 const SettingsForm = () => {
   return (
@@ -22,17 +23,9 @@ const SettingsForm = () => {
 
         </TabsContent>
    
-   
-   
-   
-   
-   
-   
-   
-   
-   
-   
-        <TabsContent value="password">Change your password here.</TabsContent>
+        <TabsContent value="admins" className="space-y-6 mt-6">
+          <UserRoleManagement />
+        </TabsContent>
       </Tabs>
     </div>
   )
