@@ -2,15 +2,23 @@
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { useFetch } from "@/hooks/useFetch"
+import { processImageSearch } from "@/lib/actions/home.actions"
 import { cn } from "@/lib/utils"
 import { Camera, Upload } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useState, FormEvent } from "react"
+import { useState, FormEvent, useEffect } from "react"
 import { useDropzone, FileWithPath } from 'react-dropzone'
 import { toast } from "sonner"
 
 
 const HomeSearch = () => {
+  const {
+    loading : isProcessing ,
+    fn : processImageAction,
+    data : processResult , 
+    error : processError
+  } = useFetch(processImageSearch)
   const router = useRouter()
   const [searchTerm, setSearchTerm] = useState('')
   const [isImageSearchActive, setIsImageSearchActive] = useState(false)
@@ -74,7 +82,8 @@ const HomeSearch = () => {
       return
     }
 
-  //  add the AI logic here 
+       processImageAction(searchImage)
+
   }
 
   const handleRemovingImage = () => {
@@ -82,6 +91,26 @@ const HomeSearch = () => {
     setSearchImage(null)
     toast.info("Image removed")
   }
+
+  useEffect(() => {
+      if (processError) toast.error("Failed to analyze something went wrong please try again!")
+  }, [processError])
+
+  useEffect(() => {
+    
+    if (processResult?.success) {
+      const params = new URLSearchParams();
+
+      if (processResult.data.make)  params.set("make" , processResult.data.make)
+      if (processResult.data.bodyType)  params.set("bodyType" , processResult.data.bodyType)
+      if (processResult.data.color)  params.set("color" , processResult.data.color)
+
+        router.push(`/cars?${params.toString()}`)
+    }
+ 
+  }, [processResult])
+  
+  
   return (
     <div>
       <form onSubmit={handleTextSubmit}>

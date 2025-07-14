@@ -95,11 +95,9 @@ const ManualCarForm = ({ uploadedImages , setUploadedImages ,  reset , handleSub
 
         await addCarFn({ carData, images: uploadedImages });
 
-        if (newCar?.success) {
-            toast.success(newCar?.message);
+            toast.success(newCar?.message || "Created car successfully!");
             reset();
             router.push("/admin/cars");
-        }
     };
 
     const removeImage = (index: number) => {
